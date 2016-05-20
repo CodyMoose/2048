@@ -3,8 +3,10 @@ package game;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Label;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
@@ -25,47 +27,42 @@ public class GamePanel extends JPanel implements KeyListener
     /**
      * 
      */
-    private static final long    serialVersionUID = -5452925014639836146L;
-    
+    private static final long       serialVersionUID = -5452925014639836146L;
     /**
      * The values of the blocks, used to determine how to paint the blocks, and
      * for game 'motion'
      */
-    private static int[][]       blockVals        = new int[4][4];
-    
+    private static int[][]          blockVals        = new int[4][4];
     /**
      * All the possible colors of the blocks with numbers in them
      */
-    private static Color[]       colors           = new Color[] { new Color(239, 231, 222), new Color(239, 223, 198),
+    private static Color[]          colors           = new Color[] { new Color(239, 231, 222), new Color(239, 223, 198),
                     new Color(239, 174, 115), new Color(247, 150, 99), new Color(246, 124, 95), new Color(246, 94, 59),
                     new Color(237, 207, 114), new Color(237, 204, 97), new Color(237, 200, 80), new Color(237, 197, 63),
                     new Color(237, 194, 46) };
-    
     /**
      * All 16 possible spots of 2048
      */
-    private static Rectangle[][] spots            = new Rectangle[4][4];
-    
+    private static Rectangle[][]    spots            = new Rectangle[4][4];
     /**
      * The background rectangle for the game board. Used for board proportions
      * and sizes
      */
-    private Rectangle            gameBoard        = new Rectangle(0, 0, 0, 0);
-    
+    private Rectangle               gameBoard        = new Rectangle(0, 0, 0, 0);
     /**
      * The backgroud of the window
      */
-    private Rectangle            background       = new Rectangle(0, 0, 0, 0);
-    
-    private static Random        r                = new Random();
+    private Rectangle               background       = new Rectangle(0, 0, 0, 0);
+    private static Random           r                = new Random();
     /**
      * The frame in which the game resides
      */
-    GameFrame                    frame;
+    GameFrame                       frame;
     /**
      * The point size of the font in the blocks. Used for scaling font
      */
-    private static double        blockFontSize    = 20;
+    private static double           blockFontSize    = 20;
+    private static ArrayList<Block> blocks           = new ArrayList<Block>();
 
     /**
      * The JPanel that holds the game
@@ -121,16 +118,36 @@ public class GamePanel extends JPanel implements KeyListener
                 {
                     g2.setPaint(colors[(int) (log(blockVals[i][j], 2) - 1)]);
                     g2.fill(spots[i][j]);
+                    g2.setPaint(Color.BLACK);
+                    drawCenteredString(g2, Integer.toString(blockVals[i][j]), spots[i][j], g2.getFont());
+//                    FontMetrics metrics = g2.getFontMetrics(g2.getFont());
+//                    int x = (spots[i][j].width - metrics.stringWidth(Integer.toString(blockVals[i][j]))) / 2;
+//                    int y = ((spots[i][j].height - metrics.getHeight()) / 2) + metrics.getAscent();
+//                    g2.drawString(Integer.toString(blockVals[i][j]), (int) (x + spots[i][j].getX()),
+//                                    (int) (y + spots[i][j].getY()));
                 }
                 g2.setPaint(Color.BLACK);
                 g2.draw(spots[i][j]);
-                g2.drawString((blockVals[i][j] != 0) ? Integer.toString(blockVals[i][j]) : "",
-                                (int) spots[i][i].getCenterX(), (int) (spots[i][j].getCenterY() + blockFontSize / 2.));
             }
+        }
+        for (int k = 0; k < blocks.size(); k++)
+        {
+            g2.setPaint(colors[(int) (log(blocks.get(k).getValue(), 2) - 1)]);
+            g2.fill(blocks.get(k).getRect());
+            g2.setPaint(Color.BLACK);
+            drawCenteredString(g2, Integer.toString(blocks.get(k).getValue()), blocks.get(k).getRect(), g2.getFont());
+//            FontMetrics metrics = g2.getFontMetrics(g2.getFont());
+//            int x = (blocks.get(k).getRect().width - metrics.stringWidth(Integer.toString(blocks.get(k).getValue())))
+//                            / 2;
+//            int y = ((blocks.get(k).getRect().height - metrics.getHeight()) / 2) + metrics.getAscent();
+//            g2.drawString(Integer.toString(blocks.get(k).getValue()), (int) (x + blocks.get(k).getRect().getX()),
+//                            (int) (y + blocks.get(k).getRect().getY()));
+            g2.draw(blocks.get(k).getRect());
         }
         g2.setPaint(Color.BLACK);
         g2.draw(new Rectangle((int) gameBoard.getX(), (int) gameBoard.getY(), (int) gameBoard.getWidth() - 1,
                         (int) gameBoard.getHeight() - 1));
+        g2.setPaint(Color.BLACK);
         repaint();
     }
 
@@ -393,7 +410,11 @@ public class GamePanel extends JPanel implements KeyListener
         if (spot.size() > 0)
         {
             int rand = r.nextInt(spot.size());
-            blockVals[(int) spot.get(rand).getWidth()][(int) spot.get(rand).getHeight()] = (r.nextBoolean()) ? 2 : 4;
+            boolean bool = r.nextBoolean();
+            int x = (int) spot.get(rand).getWidth();
+            int y = (int) spot.get(rand).getHeight();
+            blockVals[x][y] = (bool) ? 2 : 4;
+            blocks.add(new Block(new Rectangle(spots[x][y]), blockVals[x][y]));
         }
     }
 
@@ -495,5 +516,24 @@ public class GamePanel extends JPanel implements KeyListener
                 blockVals[i][j] = 0;
             }
         }
+    }
+
+    /**
+     * Draw a String centered in the middle of a Rectangle.
+     *
+     * @param g
+     *            The Graphics instance.
+     * @param text
+     *            The String to draw.
+     * @param rect
+     *            The Rectangle to center the text in.
+     */
+    public void drawCenteredString(Graphics2D g, String text, Rectangle rect, Font font)
+    {
+        FontMetrics metrics = g.getFontMetrics(font);
+        int x = (rect.width - metrics.stringWidth(text)) / 2;
+        int y = ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
+        g.setFont(font);
+        g.drawString(text, (int) (x + rect.getX()), (int) (y + rect.getY()));
     }
 }
